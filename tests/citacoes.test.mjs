@@ -15,9 +15,9 @@ test("ABNT: chamada autor-data, páginas e caixa alta opcional", () => {
 });
 
 test("ABNT: citação curta entre aspas; longa em bloco com recuo e introdução", () => {
-  const curta = citar("O processo é coletivo se a relação jurídica litigiosa é coletiva.", ref, ["31"]);
+  const curta = citar("Texto de teste curto para a citação.", ref, ["31"]);
   assert.equal(curta.longa, false);
-  assert.equal(curta.texto, "“O processo é coletivo se a relação jurídica litigiosa é coletiva.” (Didier Jr.; Zaneti Jr., 2017, p. 31).");
+  assert.equal(curta.texto, "“Texto de teste curto para a citação.” (Didier Jr.; Zaneti Jr., 2017, p. 31).");
   const longa = citar("a".repeat(300), ref, ["32", "33"]);
   assert.equal(longa.longa, true);
   assert.equal(longa.intro, "Nesse sentido, lecionam Didier Jr. e Zaneti Jr. (2017, p. 32-33):");
@@ -35,18 +35,19 @@ test("ABNT: referência NBR 6023 com título em destaque e lista sem repetição
 });
 
 const livro = { id: "l1", ref, paginas: [
-  { p: "31", t: "Sumário • 1. Conceito de processo coletivo; 2.1. Generalidades; 2.2. Modelo; 2.3. Interesse; 2.4. Controle\n\nO processo é coletivo se a relação jurídica litigiosa é coletiva. Uma relação jurídica é coletiva se em um de seus termos houver um grupo como sujeito.", d: [] },
-  { p: "32", t: "Em primeiro lugar, a legitimidade extraordinária não é uma exclusividade dos processos coletivos, pois há casos de legitimação extraordinária individual em todos os ordenamentos, como a do art. 18 do CPC.\n\nObserve-se que o núcleo do conceito de processo coletivo está em seu objeto litigioso e na tutela do grupo de pessoas que", d: ["exclusividade"] },
-  { p: "33", t: "tem a titularidade da situação jurídica coletiva, ativa ou passiva.\n\nO regime da coisa julgada secundum eventum litis do art. 103 do CDC beneficia os titulares dos direitos individuais homogêneos.", d: [] },
+  // texto fictício, escrito para o teste (nada de livro no repositório)
+  { p: "31", t: "Sumário • 1. Noções; 2.1. Origem; 2.2. Modelo; 2.3. Âmbito; 2.4. Controle\n\nTexto de teste: a demanda coletiva protege o grupo quando o direito discutido no processo pertence à coletividade inteira.", d: [] },
+  { p: "32", t: "Texto de teste: a legitimação extraordinária também aparece em demandas individuais, como a do art. 18 do CPC, e por isso não basta para qualificar uma demanda como coletiva.\n\nTexto de teste: o elemento que define a demanda é o direito discutido e a proteção do grupo de pessoas que", d: ["qualificar"] },
+  { p: "33", t: "detém a titularidade do direito discutido, em posição ativa ou passiva.\n\nTexto de teste: a coisa julgada secundum eventum litis do art. 103 do CDC só beneficia os titulares dos direitos individuais homogêneos.", d: [] },
 ] };
 
 test("busca: parágrafo que continua na página seguinte vira um trecho só (p. 32-33); sumário e títulos ficam de fora", () => {
   const us = unidades(livro);
-  const cont = us.find(u => u.t.startsWith("Observe-se"));
-  assert.deepEqual(cont.ps, ["32", "33"]); assert.match(cont.t, /grupo de pessoas que tem a titularidade/);
+  const cont = us.find(u => u.t.includes("o elemento que define"));
+  assert.deepEqual(cont.ps, ["32", "33"]); assert.match(cont.t, /grupo de pessoas que detém a titularidade/);
   assert.ok(!us.some(u => /^Sumário/.test(u.t)));
   assert.ok(naoCitavel("1. CONCEITO DE PROCESSO COLETIVO, AÇÃO COLETIVA E TUTELA JURISDICIONAL COLETIVA"));
-  assert.ok(!naoCitavel("O processo é coletivo se a relação jurídica litigiosa é coletiva, segundo a doutrina majoritária."));
+  assert.ok(!naoCitavel("Texto de teste: a demanda coletiva protege o grupo quando o direito pertence à coletividade."));
 });
 
 test("busca: marcas jurídicas e frases sem quebrar abreviaturas e números", () => {
@@ -58,13 +59,13 @@ test("busca: marcas jurídicas e frases sem quebrar abreviaturas e números", ()
 
 test("petição: só parágrafos de argumento; sugestão pertinente com página; dúvidas do OCR aparecem", () => {
   const pars = ["EXCELENTÍSSIMO SENHOR JUIZ DE DIREITO", "A DEFENSORIA PÚBLICA vem, com fundamento na Lei 7.347/1985, propor a presente AÇÃO CIVIL PÚBLICA contra o Município pelos fatos e fundamentos a seguir expostos nesta petição inicial coletiva.",
-    "A legitimidade extraordinária da Defensoria Pública não transforma o processo em coletivo, porque a legitimação extraordinária não é exclusividade dos processos coletivos e existe também em casos individuais previstos no art. 18 do CPC.",
+    "A legitimação extraordinária da Defensoria Pública não basta para qualificar a demanda como coletiva, porque a legitimação extraordinária aparece também em demandas individuais, como a prevista no art. 18 do CPC.",
     "Termos em que pede deferimento."];
   assert.deepEqual(paragrafosDeArgumento(pars).map(p => p.i), [2]);
   const ix = criarIndice([livro]), s = sugerir(ix, pars);
   assert.equal(s.length, 1); assert.equal(s[0].paragrafo, 2);
-  assert.deepEqual(s[0].sugestoes[0].ps, ["32"]); assert.match(s[0].sugestoes[0].trecho, /legitimidade extraordinária não é uma exclusividade/);
-  assert.deepEqual(duvidasNoTrecho(s[0].sugestoes[0].trecho, livro, [1]), ["exclusividade"]);
+  assert.deepEqual(s[0].sugestoes[0].ps, ["32"]); assert.match(s[0].sugestoes[0].trecho, /legitimação extraordinária também aparece em demandas individuais/);
+  assert.deepEqual(duvidasNoTrecho(s[0].sugestoes[0].trecho, livro, [1]), ["qualificar"]);
   assert.deepEqual(duvidasNoTrecho("art 103 « da.", livro, []), ["«"]);
 });
 
