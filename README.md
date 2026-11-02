@@ -37,6 +37,9 @@ node ferramentas/selar_livro.mjs livros/<id>.bin trabalho/livro.livro.json
 ```
 
 - **OCR:** Tesseract com o idioma português (`apt install tesseract-ocr tesseract-ocr-por`).
+- **Livro digitalizado aberto** (página do PDF em paisagem, com duas páginas lado a lado): o script corta no vinco e lê cada página separada. Assim, cada trecho fica com a página certa.
+- **PDF dividido em partes** (o anexo do chat e o conector do Drive têm limite de tamanho): junte as partes antes de converter, em ordem, com `python3 -c "import pymupdf,sys; o=pymupdf.open(); [o.insert_pdf(pymupdf.open(f)) for f in sys.argv[2:]]; o.save(sys.argv[1])" livro.pdf parte1.pdf parte2.pdf ...`.
+- **OCR feito fora** (Markdown com `<!-- Página PDF N -->` antes de cada página): `ferramentas/importar_md_ocr.py` aproveita só as páginas simples e legíveis de uma faixa com numeração conferida (`--de`, `--ate`, `--soma`).
 - **Página:** o número vem do cabeçalho ou do rodapé impresso. A abertura de capítulo, sem número, é deduzida pela página vizinha.
 - **Limpeza do texto:** cabeçalho corrido, anotações à mão na margem e marcas soltas saem do texto. As notas de rodapé ficam à parte.
 - **`--de N`:** deixa de fora capa, folha de rosto e sumário, que podem ter anotações pessoais.

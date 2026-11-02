@@ -47,6 +47,7 @@ test("busca: parágrafo que continua na página seguinte vira um trecho só (p. 
   assert.deepEqual(cont.ps, ["32", "33"]); assert.match(cont.t, /grupo de pessoas que detém a titularidade/);
   assert.ok(!us.some(u => /^Sumário/.test(u.t)));
   assert.ok(naoCitavel("1. CONCEITO DE PROCESSO COLETIVO, AÇÃO COLETIVA E TUTELA JURISDICIONAL COLETIVA"));
+  assert.ok(naoCitavel("de Fulano - 7. Consequência da falta de legitimação - 8. Legitimidade ativa das Defensorias - 9. Legitimação passiva"));
   assert.ok(!naoCitavel("Texto de teste: a demanda coletiva protege o grupo quando o direito pertence à coletividade."));
 });
 

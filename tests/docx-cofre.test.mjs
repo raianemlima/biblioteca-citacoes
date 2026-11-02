@@ -52,3 +52,9 @@ test("cofre: só abre com a senha certa", async () => {
   await assert.rejects(abrir("errada", arq));
   assert.ok(!JSON.stringify(arq).includes("livros"));
 });
+
+test("cofre: livro grande (vários MB) cifra e abre", async () => {
+  const grande = { livros: [{ id: "g", paginas: Array.from({ length: 600 }, (_, i) => ({ p: String(i), t: ("palavra" + i + " ").repeat(400) })) }] };
+  const arq = await cifrar("s", grande, { it: 1000 });
+  assert.equal((await abrir("s", arq)).dados.livros[0].paginas.length, 600);
+});

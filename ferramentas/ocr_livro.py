@@ -3,6 +3,9 @@
     python3 -I ocr_livro.py LIVRO.pdf SAIDA.json [--de N --ate M] [--dpi 300]
     python3 -I ocr_livro.py PASTA_DE_IMAGENS SAIDA.json          (img01.png, img02.png... em ordem)
 
+Página do PDF em paisagem (duas páginas do livro lado a lado, digitalização de livro aberto) vira duas páginas:
+o corte é no vinco, a coluna mais clara perto do meio.
+
 Saída: {"arquivo", "paginas": [{"n": ordem, "impressa": "32" | null, "texto": "...", "notas": "...",
          "duvidas": [...], "confianca": 0-100, "fonte": "texto" | "ocr"}]}
 - página com camada de texto boa usa o texto do PDF; senão, OCR (Tesseract, português);
@@ -26,6 +29,27 @@ else:
     import pymupdf
     doc = pymupdf.open(entrada); TOTAL, IMAGENS = doc.page_count, None
 de, ate = int(opt.get("--de", 1)), int(opt.get("--ate", TOTAL))
+ESCALA = float(opt.get("--escala", 1.5))   # para digitalizações cuja imagem já está em pixels de página (72 dpi)
+
+def dupla(n):
+    r = doc[n - 1].rect
+    return r.width > 1.15 * r.height
+
+def vinco(pg):
+    """x do vinco entre as duas páginas: coluna com menos tinta entre 40% e 60% da largura"""
+    import numpy as np
+    pix = pg.get_pixmap(matrix=pymupdf.Matrix(0.2, 0.2), colorspace=pymupdf.csGRAY)
+    a = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.stride)[:, :pix.width].astype(float)
+    a = a[int(.08 * pix.height):int(.92 * pix.height)]
+    tinta = (a < 128).mean(axis=0)
+    w = pix.width; i0, i1 = int(.4 * w), int(.6 * w)
+    suave = np.convolve(tinta, np.ones(5) / 5, mode="same")
+    x = i0 + int(np.argmin(suave[i0:i1]))
+    return x / w * pg.rect.width
+
+TAREFAS = []
+for n in range(de, ate + 1):
+    TAREFAS += [(n, "e"), (n, "d")] if (doc is not None and dupla(n)) else [(n, "")]
 NUM = re.compile(r"^\s*(\d{1,4})\b|\b(\d{1,4})\s*$")
 
 def linhas_tsv(tsv):
@@ -55,11 +79,13 @@ def organizar(linhas, W, H):
         # fora da mancha de texto (anotação na margem) ou marca solta
         if l["x1"] < esq - 0.02 * W or l["x0"] > dir_ + 0.01 * W or letras(t) < 3: continue
         if l["x0"] < esq - 0.06 * W and len(l["ws"]) < 4: continue
-        # cabeçalho corrido: no alto da página, com número no início ou no fim
-        if l["y0"] < 0.09 * H and not corpo:
+        # alto da página (antes da 1ª linha de texto): cabeçalho corrido com o número, ou sujeira da digitalização
+        if l["y0"] < 0.2 * H and not corpo:
             m = NUM.search(t)
-            if m and not re.fullmatch(r"\s*CAP[IÍ]TULO\s+\d+\s*", t, re.I) and (t.isupper() or re.search(r"CAP|CURSO|Vol\.", t, re.I) or len(l["ws"]) <= 12):
+            if m and not re.fullmatch(r"\s*CAP[IÍ]TULO\s+\d+\s*", t, re.I) and (t.isupper() or re.search(r"CAP|CURSO|PROCESSUAL|COLETIV|Vol|Didier|Zaneti", t, re.I) or len(l["ws"]) <= 12):
                 impressa = impressa or (m.group(1) or m.group(2)); continue
+            if re.search(r"CURSO DE DIREITO|PROCESSUAL CIVIL|Didier|Zaneti|ESTUDO DO PROCESSO", t, re.I): continue   # cabeçalho sem número legível
+            if letras(t) < 8 or not re.search(r"[A-Za-zÀ-ú]{4,}", t): continue
         # número sozinho no rodapé
         if l["y0"] > 0.92 * H and re.fullmatch(r"\s*\d{1,4}\s*", t): impressa = impressa or t.strip(); continue
         hs = l["hs"] or [alt]
@@ -93,20 +119,32 @@ def corrige(t):
     for a, b in CORRIGE: t = re.sub(a, b, t)
     return t
 
-def imagem(n):
+def imagem(tarefa):
+    n, lado = tarefa
     if IMAGENS: return IMAGENS[n - 1], None
-    t = tempfile.mkdtemp(); base = os.path.join(t, "p")
-    subprocess.run(["pdftoppm", "-r", str(DPI), "-gray", "-f", str(n), "-l", str(n), "-png", "-singlefile", entrada, base], check=True)
-    return base + ".png", t
+    t = tempfile.mkdtemp(); arq = os.path.join(t, "p.png")
+    pg = doc[n - 1]
+    if pg.get_images() and len(pg.get_images()) == 1:   # digitalização: uma imagem por página
+        r = pg.rect
+        if lado:
+            x = vinco(pg)
+            clip = pymupdf.Rect(0, 0, x, r.height) if lado == "e" else pymupdf.Rect(x, 0, r.width, r.height)
+        else: clip = r
+        esc = ESCALA if max(r.width, r.height) > 1500 else DPI / 72
+        pg.get_pixmap(matrix=pymupdf.Matrix(esc, esc), clip=clip, colorspace=pymupdf.csGRAY).save(arq)
+    else:
+        subprocess.run(["pdftoppm", "-r", str(DPI), "-gray", "-f", str(n), "-l", str(n), "-png", "-singlefile", entrada, arq[:-4]], check=True)
+    return arq, t
 
-def pagina(n):
-    if doc is not None:
+def pagina(tarefa):
+    n, lado = tarefa
+    if doc is not None and not lado:
         txt = doc[n - 1].get_text("text")
         if len(re.findall(r"[A-Za-zÀ-ú]{3,}", txt)) > 40:   # PDF com texto de verdade
             ls = [x for x in txt.splitlines()]
             m = [x for x in ls[:2] + ls[-2:] if re.fullmatch(r"\s*\d{1,4}\s*", x)]
-            return {"n": n, "impressa": m[0].strip() if m else None, "texto": corrige("\n\n".join(p.strip() for p in re.split(r"\n\s*\n", txt) if p.strip())), "notas": "", "duvidas": [], "confianca": 100, "fonte": "texto"}
-    arq, tmp = imagem(n)
+            return {"n": n, "lado": lado, "impressa": m[0].strip() if m else None, "texto": corrige("\n\n".join(p.strip() for p in re.split(r"\n\s*\n", txt) if p.strip())), "notas": "", "duvidas": [], "confianca": 100, "fonte": "texto"}
+    arq, tmp = imagem(tarefa)
     r = subprocess.run(["tesseract", arq, "-", "-l", "por", "--psm", "1", "tsv"], capture_output=True, text=True, env={**os.environ, "OMP_THREAD_LIMIT": "1"})
     import struct
     with open(arq, "rb") as f: cab = f.read(24)
@@ -115,15 +153,15 @@ def pagina(n):
     linhas = linhas_tsv(r.stdout)
     impressa, corpo, notas, duv = organizar(linhas, W, H)
     confs = [c for l in corpo for _, c in l["ws"]]
-    return {"n": n, "impressa": impressa, "texto": corrige("\n\n".join(paragrafos(corpo, W))), "notas": corrige("\n".join(t for t in (texto_linha(l) for l in notas) if letras(t) > 6)),
+    return {"n": n, "lado": lado, "impressa": impressa, "texto": corrige("\n\n".join(paragrafos(corpo, W))), "notas": corrige("\n".join(t for t in (texto_linha(l) for l in notas) if letras(t) > 6)),
             "duvidas": sorted(set(duv))[:40], "confianca": round(sum(confs) / len(confs)) if confs else 0, "fonte": "ocr"}
 
-res = {}
+if IMAGENS: TAREFAS = [(n, "") for n in range(de, ate + 1)]
+pags = []
 with cf.ThreadPoolExecutor(max_workers=os.cpu_count() or 2) as ex:
-    for p in ex.map(pagina, range(de, ate + 1)):
-        res[p["n"]] = p
-        print(f"\rpágina {p['n']}/{ate}", end="", file=sys.stderr, flush=True)
-pags = [res[k] for k in sorted(res)]
+    for i, p in enumerate(ex.map(pagina, TAREFAS), 1):
+        pags.append(p)
+        print(f"\rimagem {i}/{len(TAREFAS)} (PDF {p['n']}{p['lado']})", end="", file=sys.stderr, flush=True)
 # página sem número impresso (abertura de capítulo): deduz pela vizinha, quando a sequência fecha
 for i, p in enumerate(pags):
     if p["impressa"] is None:

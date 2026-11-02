@@ -2,7 +2,8 @@
 // Arquivo: {"v": 1, "it": 600000, "s": sal, "iv": iv, "ct": gzip(JSON) cifrado} — tudo em base64.
 // "Lembrar neste aparelho" guarda só a chave derivada, não exportável, no IndexedDB (a senha nunca é gravada).
 
-const b64 = u => btoa(String.fromCharCode(...new Uint8Array(u)));
+// em blocos: espalhar milhões de bytes num só String.fromCharCode estoura a pilha (livro inteiro tem MBs)
+const b64 = u => { const b = new Uint8Array(u); let s = ""; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(s); };
 const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
 const sub = () => globalThis.crypto.subtle;
 

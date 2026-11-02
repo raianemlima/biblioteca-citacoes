@@ -44,6 +44,7 @@ export function unidades(livro) {
 export function naoCitavel(t) {
   if (/^sum[áa]rio\b/i.test(t)) return true;
   if ((t.match(/\b\d+\.\d+\.?\s/g) || []).length >= 4) return true;
+  if ((t.match(/\s[-–•]\s\d{1,2}\.\s/g) || []).length >= 2) return true;   // sumário de capítulo sem o início ("... - 7. Consequência ... - 8. Legitimidade")
   const letras = t.replace(/[^A-Za-zÀ-ú]/g, "");
   return letras.length > 0 && letras === letras.toUpperCase() && t.length < 200;
 }
