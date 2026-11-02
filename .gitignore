@@ -1,0 +1,8 @@
+# texto dos livros em claro NUNCA entra no Git: só livros/*.bin (selados)
+trabalho/
+*.pdf
+*.livro.json
+*.ocr.json
+dados/
+_site/
+node_modules/

@@ -1,0 +1,9 @@
+{
+  "name": "biblioteca-citacoes",
+  "private": true,
+  "type": "module",
+  "description": "Livros para citar nas petições: busca, leitura por página e citação ABNT com a referência",
+  "scripts": { "test": "node --test tests/*.test.mjs" },
+  "devDependencies": { "jsdom": "26.1.0" },
+  "engines": { "node": ">=22" }
+}
