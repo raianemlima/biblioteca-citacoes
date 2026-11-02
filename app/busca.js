@@ -147,7 +147,8 @@ export function sugerir(indice, pars, { porParagrafo = 3, livros = null, minTerm
 // palavras do trecho que o OCR leu com baixa confiança (para conferir no original antes de citar)
 export function duvidasNoTrecho(trecho, livro, pis) {
   const d = new Set(), tt = " " + trecho + " ";
-  for (const m of trecho.matchAll(/\S*[«»|¦~^]\S*/g)) d.add(m[0]);   // símbolo que não existe no texto impresso: leitura falhou ali
+  // símbolo que não existe no texto impresso (£, «, |...) ou número seguido de "?": a leitura falhou ali
+  for (const m of trecho.matchAll(/\S*(?:[«»|¦~^£€¥¢©®]|\d\?)\S*/g)) d.add(m[0]);
   for (const i of pis) for (const w of (livro.paginas[i]?.d || [])) if (tt.includes(w)) d.add(w);
   return [...d];
 }

@@ -30,12 +30,24 @@ function destacar(texto, achados) {
   const alvo = new Set(achados);
   return esc(texto).replace(/[A-Za-zÀ-ú0-9]{3,}/g, w => (termos(w).some(t => alvo.has(t)) ? `<mark>${w}</mark>` : w));
 }
+// capítulo da página (livro.capitulos = [[n, título, página inicial]]) e novidades de edição posterior para ele
+function capituloDe(l, p) {
+  const n = parseInt(p, 10); if (!l.capitulos || !Number.isFinite(n)) return null;
+  let c = null; for (const x of l.capitulos) if (x[2] <= n) c = x; return c;
+}
+const novidades = (l, cap) => (l.atualizacoes?.itens || []).filter(x => cap && x.caps.includes(cap[0]));
+function avisoNovidades(l, cap, aberto = false) {
+  const its = novidades(l, cap); if (!its.length) return "";
+  return `<details class="novidade"${aberto ? " open" : ""}><summary>↻ Capítulo ${cap[0]} atualizado em edição posterior: confira antes de citar</summary>${its.map(x => `<p>${esc(x.texto)}</p>`).join("")}<p class="sub">${esc(l.atualizacoes.fonte)}</p></details>`;
+}
 function cartaoTrecho(s, i, extra = "") {
-  const l = E.porId.get(s.livro), duv = duvidasNoTrecho(s.trecho, l, range(s.pi, s.fim));
+  const l = E.porId.get(s.livro), duv = duvidasNoTrecho(s.trecho, l, range(s.pi, s.fim)), cap = capituloDe(l, s.ps[0]);
   return `<div class="sug" data-sug="${i}">
     <div class="sug-cab"><b>${esc(nomeCurto(l))}</b><span>${esc(fmtPaginas(s.ps))}</span></div>
+    ${cap ? `<p class="cap">Cap. ${cap[0]} · ${esc(cap[1])}</p>` : ""}
     <p class="trecho">${destacar(s.trecho, s.achados || [])}</p>
     ${duv.length ? `<p class="aviso">⚠ Conferir no livro antes de citar (leitura incerta): ${duv.slice(0, 6).map(esc).join(", ")}</p>` : ""}
+    ${avisoNovidades(l, cap)}
     <div class="acoes">${extra}<button class="btn" data-copiar="${i}">Copiar citação</button><button class="btn leve" data-ver="${i}">Ver página</button></div>
   </div>`;
 }
@@ -150,19 +162,24 @@ function telaLivros() {
   if (E.leitor) return telaLeitor();
   $("#main").innerHTML = `<section class="cartao"><h2>Livros</h2><p class="sub">Leia por página. Selecione um trecho e toque em “Copiar citação”: a página vai certa na citação.</p></section>
     ${E.livros.map(l => { const r = referencia(l.ref); return `<article class="livro"><p class="ref">${r.html}</p><p class="sub">${l.paginas.length} páginas convertidas · p. ${esc(l.paginas[0]?.p)} a ${esc(l.paginas.at(-1)?.p)}</p>
+      ${l.capitulos ? `<details class="caps"><summary>Capítulos</summary><ol>${l.capitulos.map(c => `<li value="${c[0]}"><button class="lnk" data-cap="${esc(l.id)}:${c[2]}">${esc(c[1])}</button> <small>p. ${c[2]}</small>${novidades(l, c).length ? ' <small class="nov">↻ atualizado</small>' : ""}</li>`).join("")}</ol></details>` : ""}
+      ${l.atualizacoes ? `<details class="novidade"><summary>↻ Novidades da edição posterior</summary>${l.atualizacoes.itens.map(x => `<p>${x.caps.length ? `<b>Cap. ${x.caps.join(", ")}:</b> ` : ""}${esc(x.texto)}</p>`).join("")}<p class="sub">${esc(l.atualizacoes.fonte)}</p></details>` : ""}
       <div class="acoes"><button class="btn primario" data-abrir="${esc(l.id)}">Ler</button><button class="btn" data-ref="${esc(l.id)}">Copiar referência</button></div></article>`; }).join("")}`;
   document.querySelectorAll("[data-abrir]").forEach(b => b.onclick = () => abrirLeitor(b.dataset.abrir, 0));
+  document.querySelectorAll("[data-cap]").forEach(b => b.onclick = () => { const [id, p] = b.dataset.cap.split(":"), l = E.porId.get(id); abrirLeitor(id, Math.max(0, l.paginas.findIndex(x => parseInt(x.p, 10) >= +p))); });
   document.querySelectorAll("[data-ref]").forEach(b => b.onclick = () => copiar(referencia(E.porId.get(b.dataset.ref).ref)));
 }
 function abrirLeitor(id, pi, foco) { E.leitor = { id, pi, foco }; E.aba = "livros"; render(); }
 function telaLeitor() {
-  const { id, pi } = E.leitor, l = E.porId.get(id), pg = l.paginas[pi];
+  const { id, pi } = E.leitor, l = E.porId.get(id), pg = l.paginas[pi], cap = capituloDe(l, pg.p);
   $("#main").innerHTML = `<button class="btn leve" id="lVolta">← Livros</button>
     <section class="cartao leitor">
       <p class="ref">${referencia(l.ref).html}</p>
       <div class="linha nav-pag"><button class="btn" id="lAnt" ${pi ? "" : "disabled"}>‹</button>
         <label>Página <select id="lPag">${l.paginas.map((p, i) => `<option value="${i}" ${i === pi ? "selected" : ""}>${esc(p.p)}</option>`).join("")}</select></label>
         <button class="btn" id="lProx" ${pi < l.paginas.length - 1 ? "" : "disabled"}>›</button></div>
+      ${cap ? `<p class="cap">Cap. ${cap[0]} · ${esc(cap[1])}</p>` : ""}
+      ${avisoNovidades(l, cap)}
       ${pg.c < 85 ? `<p class="aviso">⚠ Página com leitura menos precisa (${pg.c}%): confira no livro antes de citar.</p>` : ""}
       <div class="texto" id="lTexto">${pg.t.split(/\n{2,}/).map(t => `<p>${esc(t)}</p>`).join("")}</div>
       ${pg.n ? `<details class="notas"><summary>Notas de rodapé</summary><p>${esc(pg.n).replace(/\n/g, "<br>")}</p></details>` : ""}

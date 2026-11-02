@@ -68,6 +68,15 @@ test("petição: só parágrafos de argumento; sugestão pertinente com página;
   assert.deepEqual(s[0].sugestoes[0].ps, ["32"]); assert.match(s[0].sugestoes[0].trecho, /legitimação extraordinária também aparece em demandas individuais/);
   assert.deepEqual(duvidasNoTrecho(s[0].sugestoes[0].trecho, livro, [1]), ["qualificar"]);
   assert.deepEqual(duvidasNoTrecho("art 103 « da.", livro, []), ["«"]);
+  assert.deepEqual(duvidasNoTrecho("artigos 1º,3º e 4?, de todo £ qualquer", livro, []), ["4?,", "£"]);
+});
+
+test("livros: capítulo da página e aviso de edição posterior só no capítulo afetado (nunca no texto do livro)", async () => {
+  const { readFileSync } = await import("node:fs");
+  const js = readFileSync(new URL("../app/main.js", import.meta.url), "utf8");
+  assert.match(js, /function capituloDe\(l, p\)/); assert.match(js, /atualizado em edição posterior: confira antes de citar/);
+  const mont = readFileSync(new URL("../ferramentas/montar_livro.py", import.meta.url), "utf8");
+  assert.match(mont, /"atualizacoes"/, "atualizações entram no JSON do livro como campo à parte");
 });
 
 test("repositório: livros/ só tem selos e a chave pública; nada de texto em claro", async () => {
