@@ -60,3 +60,13 @@ Citar trechos de obra com a indicação do autor e da fonte é permitido pela Le
 ```bash
 npm install && npm test
 ```
+
+## Livros incluídos
+
+Além de Didier e Zaneti (processo coletivo), entraram dez livros vindos de PDF com texto já extraído, página a página (conversor `ferramentas/conteudo/livro_paginas.py --paginas` do repositório de estudo): Criminologia, Pessoa com Deficiência, Direito Administrativo, Direito Tributário, Processo Civil (Neves), Direito Civil (Tartuce, 2024), Prática forense (Viana), Direito Penal estruturado (Greco), Direito do Consumidor (Nunes) e Impactos do novo CPC no Direito Civil (Tartuce, 2015).
+
+- **Página impressa:** confirmada pelo cabeçalho nos livros de Criminologia, Pessoa com Deficiência, Administrativo, Tributário, Processo Civil e Prática forense. Nos de Tartuce (os dois), Greco e Nunes o texto extraído não traz número de página: as páginas aparecem como **[n]** (página do arquivo digital), que pode não coincidir com a do livro impresso. Confira o número antes de citar.
+- **Prática forense:** edição sem ano no material (referência "[s.d.]"); preencha o ano em `ref` se souber.
+- **Edições anteriores a mudanças legais:** Administrativo (2020, antes das Leis 14.133 e 14.230/2021), Tributário (2023, antes da regulamentação da reforma tributária) e Consumidor (2018, antes da Lei 14.181/2021).
+- **OCR:** o Direito Civil de Tartuce (2024) e a Prática forense têm erros de leitura; o app marca as páginas de leitura menos precisa.
+- As notas de rodapé ficam no meio do texto da página (não foram separadas).
