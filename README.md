@@ -63,10 +63,9 @@ npm install && npm test
 
 ## Livros incluídos
 
-Além de Didier e Zaneti (processo coletivo), entraram dez livros vindos de PDF com texto já extraído, página a página (conversor `ferramentas/conteudo/livro_paginas.py --paginas` do repositório de estudo): Criminologia, Pessoa com Deficiência, Direito Administrativo, Direito Tributário, Processo Civil (Neves), Direito Civil (Tartuce, 2024), Prática forense (Viana), Direito Penal estruturado (Greco), Direito do Consumidor (Nunes) e Impactos do novo CPC no Direito Civil (Tartuce, 2015).
+Além de Didier e Zaneti (processo coletivo), entraram cinco livros vindos de PDF com texto já extraído, página a página (conversor `ferramentas/conteudo/livro_paginas.py --paginas` do repositório de estudo): Criminologia (Oliveira), Pessoa com Deficiência (Lopez), Direito Administrativo (Baltar Neto e Torres), Direito Tributário (Alexandre) e Processo Civil (Neves).
 
-- **Página impressa:** confirmada pelo cabeçalho nos livros de Criminologia, Pessoa com Deficiência, Administrativo, Tributário, Processo Civil e Prática forense. Nos de Tartuce (os dois), Greco e Nunes o texto extraído não traz número de página: as páginas aparecem como **[n]** (página do arquivo digital), que pode não coincidir com a do livro impresso. Confira o número antes de citar.
-- **Prática forense:** edição sem ano no material (referência "[s.d.]"); preencha o ano em `ref` se souber.
-- **Edições anteriores a mudanças legais:** Administrativo (2020, antes das Leis 14.133 e 14.230/2021), Tributário (2023, antes da regulamentação da reforma tributária) e Consumidor (2018, antes da Lei 14.181/2021).
-- **OCR:** o Direito Civil de Tartuce (2024) e a Prática forense têm erros de leitura; o app marca as páginas de leitura menos precisa.
-- As notas de rodapé ficam no meio do texto da página (não foram separadas).
+- **Critério:** só entram livros com texto limpo e **número de página impresso confirmado** pelo cabeçalho em todo o livro (o deslocamento é o mesmo do começo ao fim). Ficaram de fora, por não atenderem: Direito Civil (Tartuce, 2024; OCR com muitos erros), Prática forense (OCR ruim e sem ano), Direito Penal estruturado (Greco; sem número de página e sem a numeração dos tópicos), Direito do Consumidor (Nunes) e Impactos do novo CPC (Tartuce, 2015), os dois sem número de página no texto extraído.
+- **Número da página:** quando o cabeçalho não está legível, o número é deduzido pelas páginas vizinhas e a página aparece marcada como deduzida.
+- **Edições anteriores a mudanças legais:** Administrativo (2020, antes das Leis 14.133 e 14.230/2021) e Tributário (2023, antes da regulamentação da reforma tributária).
+- **Notas de rodapé:** ficam no meio do texto da página (não foram separadas).
